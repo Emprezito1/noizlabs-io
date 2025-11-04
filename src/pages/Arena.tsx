@@ -29,7 +29,6 @@ const Arena = () => {
   const { walletAddress, isConnected } = useSolanaWallet();
   const { setVisible } = useWalletModal();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [audioTitle, setAudioTitle] = useState('');
   const [selectedUploadCategory, setSelectedUploadCategory] = useState('');
   const [battles, setBattles] = useState<Battle[]>([]);
@@ -116,18 +115,6 @@ const Arena = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!requireWallet()) return;
-    
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      setSelectedImageFile(file);
-      toast.success('Image file selected!');
-    } else {
-      toast.error('Please select a valid image file');
-    }
-  };
-
   const handleUpload = async () => {
     if (!requireWallet()) return;
     if (!selectedFile) {
@@ -166,25 +153,6 @@ const Arena = () => {
     // Remove 10 clip limit - now unlimited
 
     try {
-      let imageUrl = null;
-
-      // Upload image file to storage if provided
-      if (selectedImageFile) {
-        const imageFileName = `${Date.now()}-${selectedImageFile.name}`;
-        const { data: imageUploadData, error: imageUploadError } = await supabase.storage
-          .from('audio-clips')
-          .upload(imageFileName, selectedImageFile);
-
-        if (imageUploadError) throw imageUploadError;
-
-        // Get public URL for image
-        const { data: { publicUrl: imagePublicUrl } } = supabase.storage
-          .from('audio-clips')
-          .getPublicUrl(imageFileName);
-        
-        imageUrl = imagePublicUrl;
-      }
-
       // Upload audio file to storage
       const fileName = `${Date.now()}-${selectedFile.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -198,7 +166,7 @@ const Arena = () => {
         .from('audio-clips')
         .getPublicUrl(fileName);
 
-      // Insert audio clip with URL and image URL
+      // Insert audio clip with URL
       const { error } = await supabase
         .from('audio_clips')
         .insert({
@@ -206,7 +174,6 @@ const Arena = () => {
           creator_wallet: walletAddress!,
           category_id: selectedUploadCategory,
           audio_url: publicUrl,
-          image_url: imageUrl,
         });
 
       if (error) throw error;
@@ -219,7 +186,6 @@ const Arena = () => {
 
       toast.success('Audio uploaded! You earned 10 points! 🎉');
       setSelectedFile(null);
-      setSelectedImageFile(null);
       setAudioTitle('');
       setSelectedUploadCategory('');
       refreshData();
@@ -616,30 +582,6 @@ const Arena = () => {
                   </label>
                 </div>
 
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <label htmlFor="image-upload" className="cursor-pointer">
-                    <p className="font-medium mb-2">
-                      {selectedImageFile ? selectedImageFile.name : 'Upload cover image (optional)'}
-                    </p>
-                    {selectedImageFile && (
-                      <div className="mt-3">
-                        <img 
-                          src={URL.createObjectURL(selectedImageFile)} 
-                          alt="Preview" 
-                          className="max-w-full max-h-32 mx-auto rounded-lg"
-                        />
-                      </div>
-                    )}
-                  </label>
-                </div>
-
                 {selectedFile && (
                   <>
                     <Input 
@@ -762,29 +704,29 @@ const Arena = () => {
                                         {hasVoted ? '✓ Voted' : 'Vote for This (+5 pts)'}
                                       </Button>
 
-                                      {/* Action Buttons Row */}
-                                      <div className="flex gap-1.5 items-center">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="flex-1 h-8 text-[11px] md:text-xs hover:bg-primary/10 touch-manipulation active:scale-95"
-                                          onClick={() => handleShare(meme.id, meme.title)}
-                                        >
-                                          <Share2 className="w-3 h-3 md:w-3.5 md:h-3.5 mr-1" />
-                                          Share
-                                        </Button>
-                                        {meme.audioUrl && (
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="flex-1 h-8 text-[11px] md:text-xs hover:bg-primary/10 touch-manipulation active:scale-95"
-                                            onClick={() => handleRemix(meme.audioUrl, meme.title)}
-                                          >
-                                            <Music className="w-3 h-3 md:w-3.5 md:h-3.5 mr-1" />
-                                            Remix
-                                          </Button>
-                                        )}
-                                      </div>
+                                       {/* Action Buttons Row */}
+                                       <div className="flex gap-1.5 items-center w-full">
+                                         <Button
+                                           variant="ghost"
+                                           size="sm"
+                                           className="flex-1 h-8 text-[11px] md:text-xs hover:bg-primary/10 touch-manipulation active:scale-95 min-w-0"
+                                           onClick={() => handleShare(meme.id, meme.title)}
+                                         >
+                                           <Share2 className="w-3 h-3 md:w-3.5 md:h-3.5 mr-0.5 md:mr-1 flex-shrink-0" />
+                                           <span className="truncate">Share</span>
+                                         </Button>
+                                         {meme.audioUrl && (
+                                           <Button
+                                             variant="ghost"
+                                             size="sm"
+                                             className="flex-1 h-8 text-[11px] md:text-xs hover:bg-primary/10 touch-manipulation active:scale-95 min-w-0"
+                                             onClick={() => handleRemix(meme.audioUrl, meme.title)}
+                                           >
+                                             <Music className="w-3 h-3 md:w-3.5 md:h-3.5 mr-0.5 md:mr-1 flex-shrink-0" />
+                                             <span className="truncate">Remix</span>
+                                           </Button>
+                                         )}
+                                       </div>
 
                                      {/* Vote Count */}
                                      <div className="flex items-center justify-center text-[10px] md:text-xs text-muted-foreground pt-0.5">
