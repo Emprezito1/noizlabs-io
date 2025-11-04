@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Upload, Play, Trophy, Users, Sparkles, FolderPlus, Zap, Share2, Clock, Music, Search, Filter } from 'lucide-react';
+import { Upload, Play, Trophy, Users, Sparkles, FolderPlus, Zap, Share2, Clock, Music, Search, Filter, Twitter, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
 import { useArena } from '@/contexts/ArenaContext';
@@ -40,12 +40,14 @@ const Arena = () => {
   const [categorySearch, setCategorySearch] = useState('');
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [preferredGenres, setPreferredGenres] = useState<string[]>([]);
+  const [showOnlyUnvoted, setShowOnlyUnvoted] = useState(false);
 
-  // Fetch user's preferred genres
+  // Fetch user's preferred genres and voted battles
   useEffect(() => {
-    const fetchPreferredGenres = async () => {
+    const fetchUserData = async () => {
       if (!walletAddress) return;
       
+      // Fetch preferred genres
       const { data } = await supabase
         .from('profiles')
         .select('preferred_genres')
@@ -55,9 +57,19 @@ const Arena = () => {
       if (data?.preferred_genres && data.preferred_genres.length > 0) {
         setPreferredGenres(data.preferred_genres);
       }
+
+      // Fetch user's votes
+      const { data: votesData } = await supabase
+        .from('votes')
+        .select('battle_id')
+        .eq('voter_wallet', walletAddress);
+      
+      if (votesData) {
+        setVotedBattles(new Set(votesData.map(v => v.battle_id)));
+      }
     };
 
-    fetchPreferredGenres();
+    fetchUserData();
   }, [walletAddress]);
 
   // Update countdown every second
@@ -338,9 +350,28 @@ const Arena = () => {
     setRemixDialogOpen(true);
   };
 
-  const filteredBattles = selectedCategory === 'all' 
+  const handleTwitterShare = (battleId: string, category: string) => {
+    const shareUrl = `${window.location.origin}/arena?battle=${battleId}`;
+    const tweetText = `Check out this epic ${category} battle on @NoizLabs! 🎵\n\nVote for your favorite and earn rewards! 🏆\n\n${shareUrl}`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+    window.open(twitterUrl, '_blank', 'width=550,height=420');
+  };
+
+  const handleDiscordShare = (battleId: string, category: string) => {
+    const shareUrl = `${window.location.origin}/arena?battle=${battleId}`;
+    const discordMessage = `Check out this epic ${category} battle on NoizLabs! 🎵 Vote and earn rewards! ${shareUrl}`;
+    navigator.clipboard.writeText(discordMessage);
+    toast.success('Discord message copied! Paste it in your server.');
+  };
+
+  let filteredBattles = selectedCategory === 'all' 
     ? battles 
     : battles.filter(b => b.category === selectedCategory);
+  
+  // Apply unvoted filter if enabled
+  if (showOnlyUnvoted && walletAddress) {
+    filteredBattles = filteredBattles.filter(b => !votedBattles.has(b.id));
+  }
 
   const totalVotes = audioClips.reduce((sum, clip) => sum + clip.votes, 0);
 
@@ -460,15 +491,27 @@ const Arena = () => {
           <TabsContent value="arena">
             {/* Category Filter */}
             <div className="mb-8 space-y-4">
-              {/* Search Bar */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search categories..."
-                  value={categorySearch}
-                  onChange={(e) => setCategorySearch(e.target.value)}
-                  className="pl-10"
-                />
+              {/* Search Bar and Unvoted Filter */}
+              <div className="flex gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search categories..."
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                {walletAddress && (
+                  <Button
+                    variant={showOnlyUnvoted ? "default" : "outline"}
+                    onClick={() => setShowOnlyUnvoted(!showOnlyUnvoted)}
+                    className="whitespace-nowrap"
+                  >
+                    <Filter className="w-4 h-4 mr-2" />
+                    {showOnlyUnvoted ? 'All Battles' : 'Unvoted Only'}
+                  </Button>
+                )}
               </div>
 
               {/* Category Badges */}
@@ -638,16 +681,39 @@ const Arena = () => {
                   return (
                      <Card key={battle.id} className="glass-strong border-border">
                        <CardHeader className="pb-3">
-                         <div className="flex items-center justify-between">
-                           <CardTitle className="text-base">Battle Arena</CardTitle>
+                         <div className="flex flex-col gap-2">
+                           <div className="flex items-center justify-between">
+                             <CardTitle className="text-base">Battle Arena</CardTitle>
+                             <div className="flex items-center gap-2">
+                               <Badge variant="outline" className="border-accent text-accent flex items-center gap-1 text-xs px-2 py-0.5">
+                                 <Clock className="w-3 h-3" />
+                                 {category && getTimeRemaining(category.expiresAt)}
+                               </Badge>
+                               <Badge variant="outline" className="border-primary text-primary text-xs px-2 py-0.5">
+                                 {battle.category}
+                               </Badge>
+                             </div>
+                           </div>
+                           {/* Social Share Buttons */}
                            <div className="flex items-center gap-2">
-                             <Badge variant="outline" className="border-accent text-accent flex items-center gap-1 text-xs px-2 py-0.5">
-                               <Clock className="w-3 h-3" />
-                               {category && getTimeRemaining(category.expiresAt)}
-                             </Badge>
-                             <Badge variant="outline" className="border-primary text-primary text-xs px-2 py-0.5">
-                               {battle.category}
-                             </Badge>
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               className="h-7 text-xs hover:bg-blue-500/10 hover:text-blue-500 touch-manipulation active:scale-95"
+                               onClick={() => handleTwitterShare(battle.id, battle.category)}
+                             >
+                               <Twitter className="w-3.5 h-3.5 mr-1" />
+                               Share on X
+                             </Button>
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               className="h-7 text-xs hover:bg-indigo-500/10 hover:text-indigo-500 touch-manipulation active:scale-95"
+                               onClick={() => handleDiscordShare(battle.id, battle.category)}
+                             >
+                               <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                               Share on Discord
+                             </Button>
                            </div>
                          </div>
                        </CardHeader>
