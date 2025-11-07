@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Wallet, Sparkles, Home, Trophy, Rocket, ShoppingBag, ArrowLeftRight, Coins, ListChecks, Radio, User } from 'lucide-react';
+import { Wallet, Sparkles, Home, Trophy, Rocket, ShoppingBag, ArrowLeftRight, Coins, ListChecks, Radio, User, BarChart3 } from 'lucide-react';
 import { useArena } from '@/contexts/ArenaContext';
 import { useSolanaWallet } from '@/hooks/useSolanaWallet';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -49,6 +49,7 @@ export const Navbar = () => {
   const desktopNavLinks = [
     { to: '/', label: 'Home', icon: Home },
     { to: '/arena', label: 'Arena', icon: Trophy },
+    { to: '/analytics', label: 'Analytics', icon: BarChart3 },
     { to: '/launchpad', label: 'Launchpad', icon: Rocket },
     { to: '/marketplace', label: 'Market', icon: ShoppingBag },
     { to: '/swap', label: 'Swap', icon: ArrowLeftRight },

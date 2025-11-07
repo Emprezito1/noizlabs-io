@@ -20,6 +20,7 @@ import Swap from "./pages/Swap";
 import Staking from "./pages/Staking";
 import Profile from "./pages/Profile";
 import Tasks from "./pages/Tasks";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const AppContent = () => {
         <Route path="/staking" element={<Staking />} />
         <Route path="/profile/:username" element={<Profile />} />
         <Route path="/tasks" element={<Tasks />} />
+        <Route path="/analytics" element={<Analytics />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
